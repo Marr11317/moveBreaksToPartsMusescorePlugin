@@ -21,64 +21,66 @@ MuseScore {
             } else if (curScore.selection.elements[0].type != Element.LAYOUT_BREAK ){
                   selectionError.open();
                   Qt.quit();
-            }else {
-                  curScore.startCmd();
+            } else {
+                  //curScore.startCmd();
                   cmd("select-similar");
+                  //curScore.endCmd();
+
                   
                   var elements = curScore.selection.elements;
                   
-                  var cursor = curScore.newCursor();
-                  cursor.track = 0;
+                  var measNoPageBreak = new Array();
+                  var measNoLineBreak = new Array();
+                  var measNoSectionBreak = new Array();
+                  var measNoNoBreak = new Array();
                   
-                  var measNoPageBreak;
-                  var measNoLineBreak;
-                  var measNoSectionBreak;
-                  var measNoNoBreak;
-                  if (elements.length > 0) {  // We have a selection list to work with...
-                        console.log(elements.length, "selections")
-                        for (var idx = 0; idx < elements.length; idx++) {
-                              var element = elements[idx];
-                              if (element.type == Element.LAYOUT_BREAK ) {
-                                    if (element.layoutBreakType == 2 || element.layoutBreakType == 4){
-                                          
-                                          var tick = element.parent.tick;
-                                          cursor.rewind(0);
-                                          do {
-                                                if (cursor.tick == tick) {
-                                                      var meaNo = findMeasureNumber(cursor.measure) + 1
-                                                      if (mark.text == "mea")
-                                                            mark.text = meaNo;
-                                                      console.log("We found the tick!");
-                                                      if (meaNo > 1)
-                                                            cursor.add(mark.clone());
-                                                      break;
-                                                }
-                                          } while (cursor.next())
-                                    }
-                              }
+                  for (var idx = 0; idx < elements.length; idx++) {
+                        var element = elements[idx];
+                        if (element.type == Element.LAYOUT_BREAK ) {
+                              if (element.layoutBreakType == LayoutBreak.PAGE)
+                                    measNoPageBreak.push (findMeasureNumber (element.parent))
+                              else if  (element.layoutBreakType == LayoutBreak.LINE)
+                                    measNoLineBreak.push (findMeasureNumber (element.parent))
+                              else if  (element.layoutBreakType == LayoutBreak.SECTION)
+                                    measNoSectionBreak.push (findMeasureNumber (element.parent))
+                              else if  (element.layoutBreakType == LayoutBreak.NOBREAK)
+                                    measNoNoBreak.push (findMeasureNumber (element.parent))
+                              else console.log("Error in finding layout break type")
                         }
                   }
-                  cmd("resequence-rehearsal-marks");
                   
-                  curScore.endCmd();
+                  var partsList = curScore.excerpts;
+                  console.log(excerptsAccess.count(partsList));
+                  var partNum = 0;
+                  for (partNum = 0; partNum < excerptsAccess.count(partsList); partNum++) {
+                        addBreaksToPart (partsList [partNum].partScore, measNoPageBreak, measNoLineBreak, measNoSectionBreak, measNoNoBreak, true, true, true, true) 
+                  }
+                  
+                  printList(measNoLineBreak);
                   Qt.quit();
             }
       }
       
+      function printList(list) {
+            var i = 0;
+            for (i = 0; i < list.length; i++)
+                  console.log(list[i])
+      }
+      
       function findMeasureNumber (mea) {
             if (!mea) {
-                  console.log("findMeasureNumber: no measure");
+                  console.log("findMeasureNumber: no measure provided");
                   return 0;
             }
             
             var ms = mea
             var i = 1;
-            while (ms.prev) {
-                  ms = ms.prev;
-                  if (ms.is (curScore.firstMeasure))
+            while (ms.prevMeasure) {
+                  ms = ms.prevMeasure;
+                  if (ms.is (curScore.firstMeasure)){
                         return i;
+                  }
                   // todo: don't count measure if excluded from measure count
-                  console.log(i)
                   i++;
             }
             if (i > 1){
@@ -88,6 +90,53 @@ MuseScore {
             return 1; // it was measure number 1
       }
             
+      function addBreaksToPart (part, pageArray, lineArray, sectionArray, noBreakArray, addPage, addLine, addSection, addNoBreak) {
+            var cursor = part.newCursor ();
+            cursor.track = 0;
+            cursor.rewind(Cursor.SCORE_START)
+            
+            var curMeasure = 1;
+            
+            var pbreak = newElement(element.LAYOUT_BREAK);
+            pbreak.setLayoutBreakType (LayoutBreak.PAGE);
+            
+            var lbreak = newElement(element.LAYOUT_BREAK);
+            lbreak.setLayoutBreakType (LayoutBreak.LINE);
+            
+            var sbreak = newElement(element.LAYOUT_BREAK);
+            sbreak.setLayoutBreakType (LayoutBreak.SECTION);
+            
+            var nobreak = newElement(element.LAYOUT_BREAK);
+            nobreak.setLayoutBreakType (LayoutBreak.NOBREAK);
+            
+            do  {
+                  if (addPage) {
+                        if (arrayContains(pageArray, curMeasure))
+                              cur.Add (pbreak.clone());
+                  } else if (addLine) {
+                        if (arrayContains(lineArray, curMeasure))
+                              cur.Add (lbreak.clone());
+                  } else if (addSection) {
+                        if (arrayContains(sectionArray, curMeasure))
+                              cur.Add (sbreak.clone());
+                  } else if (addNoBreak) {
+                        if (arrayContains(noBreakArray, curMeasure))
+                              cur.Add (nobreak.clone());
+                  }
+                  i++
+            } while (cursor.nextMeasure());
+      }
+      
+      function arrayContains(array, value) {
+            var i;
+            for (i = 0; i < array.count; i++) {
+                  if (array [i] == value)
+                        return true
+            }
+            
+            return false
+      }
+      
       MessageDialog {
             id: versionError
             visible: false
@@ -105,5 +154,8 @@ MuseScore {
             onAccepted: {
                   Qt.quit()
             }
+      }
+      QmlExcerptsListAccess  {
+            id: excerptsAccess
       }
 }
