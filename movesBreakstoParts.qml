@@ -22,10 +22,8 @@ MuseScore {
                   selectionError.open();
                   Qt.quit();
             } else {
-                  //curScore.startCmd();
-                  cmd("select-similar");
-                  //curScore.endCmd();
 
+                  cmd("select-similar");
                   
                   var elements = curScore.selection.elements;
                   
@@ -49,22 +47,31 @@ MuseScore {
                         }
                   }
                   
+                  printList(measNoPageBreak, "measNoPageBreak: ");
+                  printList(measNoLineBreak, "measNoLineBreak: ");
+                  printList(measNoSectionBreak, "measNoSectionBreak: ");
+                  printList(measNoNoBreak, "measNoNoBreak: ");
+
                   var partsList = curScore.excerpts;
-                  console.log(excerptsAccess.count(partsList));
-                  var partNum = 0;
-                  for (partNum = 0; partNum < excerptsAccess.count(partsList); partNum++) {
+                  var partNum;
+                  for (partNum = 0; partNum < partsList.length; partNum++) {
+                        console.log(partsList [partNum].title)
                         addBreaksToPart (partsList [partNum].partScore, measNoPageBreak, measNoLineBreak, measNoSectionBreak, measNoNoBreak, true, true, true, true) 
                   }
                   
-                  printList(measNoLineBreak);
+                  
+                  // delete measNoPageBreak;
+                  // delete measNoLineBreak;
+                  // delete measNoSectionBreak;
+                  // delete measNoNoBreak;
                   Qt.quit();
             }
       }
       
-      function printList(list) {
+      function printList(list, text) {
             var i = 0;
             for (i = 0; i < list.length; i++)
-                  console.log(list[i])
+                  console.log(text, list[i])
       }
       
       function findMeasureNumber (mea) {
@@ -76,62 +83,66 @@ MuseScore {
             var ms = mea
             var i = 1;
             while (ms.prevMeasure) {
-                  ms = ms.prevMeasure;
-                  if (ms.is (curScore.firstMeasure)){
-                        return i;
-                  }
                   // todo: don't count measure if excluded from measure count
                   i++;
+
+                  ms = ms.prevMeasure;
+                  if (ms.is (curScore.firstMeasure))
+                        return i;
             }
             if (i > 1){
-                  console.log("findMeasureNumber: measure not found");
+                  console.log("findMeasureNumber: measure not found error");
                   return 0;
             }
             return 1; // it was measure number 1
       }
             
       function addBreaksToPart (part, pageArray, lineArray, sectionArray, noBreakArray, addPage, addLine, addSection, addNoBreak) {
+            curScore.startCmd();
+            
             var cursor = part.newCursor ();
-            cursor.track = 0;
             cursor.rewind(Cursor.SCORE_START)
             
+            
+            var pbreak = newElement (Element.LAYOUT_BREAK);
+            pbreak.layoutBreakType = LayoutBreak.PAGE;
+            
+            var lbreak = newElement (Element.LAYOUT_BREAK);
+            lbreak.layoutBreakType = LayoutBreak.LINE;
+            
+            var sbreak = newElement (Element.LAYOUT_BREAK);
+            sbreak.layoutBreakType = LayoutBreak.SECTION;
+            
+            var nobreak = newElement (Element.LAYOUT_BREAK);
+            nobreak.layoutBreakType = LayoutBreak.NOBREAK;
+            
             var curMeasure = 1;
-            
-            var pbreak = newElement(element.LAYOUT_BREAK);
-            pbreak.setLayoutBreakType (LayoutBreak.PAGE);
-            
-            var lbreak = newElement(element.LAYOUT_BREAK);
-            lbreak.setLayoutBreakType (LayoutBreak.LINE);
-            
-            var sbreak = newElement(element.LAYOUT_BREAK);
-            sbreak.setLayoutBreakType (LayoutBreak.SECTION);
-            
-            var nobreak = newElement(element.LAYOUT_BREAK);
-            nobreak.setLayoutBreakType (LayoutBreak.NOBREAK);
-            
             do  {
-                  if (addPage) {
-                        if (arrayContains(pageArray, curMeasure))
-                              cur.Add (pbreak.clone());
-                  } else if (addLine) {
-                        if (arrayContains(lineArray, curMeasure))
-                              cur.Add (lbreak.clone());
-                  } else if (addSection) {
-                        if (arrayContains(sectionArray, curMeasure))
-                              cur.Add (sbreak.clone());
-                  } else if (addNoBreak) {
-                        if (arrayContains(noBreakArray, curMeasure))
-                              cur.Add (nobreak.clone());
-                  }
-                  i++
-            } while (cursor.nextMeasure());
+                  if (addPage && arrayContains (pageArray, curMeasure))
+                        cursor.add (pbreak.clone ());
+                  else if (addLine && arrayContains(lineArray, curMeasure))
+                        cursor.add (lbreak.clone ());
+                  else if (addSection && arrayContains (sectionArray, curMeasure))
+                        cursor.add (sbreak.clone ());
+                  else if (addNoBreak&& arrayContains (noBreakArray, curMeasure))
+                        cursor.add (nobreak.clone ());
+                  curMeasure++
+            } while (cursor.nextMeasure ());
+            
+            // delete pbreak;
+            // delete lbreak;
+            // delete sbreak;
+            // delete nobreak;
+            
+            curScore.endCmd();
       }
       
       function arrayContains(array, value) {
             var i;
-            for (i = 0; i < array.count; i++) {
-                  if (array [i] == value)
+            for (i = 0; i < array.length; i++) {
+                  if (array [i] == value) {
                         return true
+                  }
             }
             
             return false
@@ -150,12 +161,9 @@ MuseScore {
             id: selectionError
             visible: false
             title: qsTr("Plugin selection error")
-            text: qsTr("Please select a line break before running this plugin.")
+            text: qsTr("Please select a layout break before running this plugin.")
             onAccepted: {
                   Qt.quit()
             }
-      }
-      QmlExcerptsListAccess  {
-            id: excerptsAccess
       }
 }
