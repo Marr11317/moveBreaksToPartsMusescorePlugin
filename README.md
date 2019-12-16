@@ -3,7 +3,7 @@ MuseScore plugin
 This plugin exports layout breaks to all parts to keep a similar layout in all of them.
 It was created following [this thread](https://musescore.org/en/node/180806).
 
-##Usage:
+## Usage:
 Select a layout break already in place in your score and run the plugin.
 
 Needs MuseScore 3.3 or higher to function.
