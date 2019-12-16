@@ -1,4 +1,4 @@
-MuseScore plugin
+Plugin for [Musescore](musescore.org)
 
 This plugin exports layout breaks to all parts to keep a similar layout in all of them.
 It was created following [this thread](https://musescore.org/en/node/180806).
