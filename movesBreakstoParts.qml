@@ -1,11 +1,10 @@
 import QtQuick 2.0
 import MuseScore 3.0
 import QtQuick.Dialogs 1.1
-import Qt.labs.settings 1.0
 
 MuseScore {
-      menuPath: "Plugins.moveBreaksToParts"
-      description: "This plugin moves breaks from the score to parts."
+      menuPath: "Plugins.applyScoreBreaksToParts"
+      description: "This plugin applies the same layout breaks present in the score to the parts. \nTo use it, select any layout break of a score, and run the plugin."
       version: "1.0"
       requiresScore: true
       onRun: {
@@ -15,14 +14,17 @@ MuseScore {
             if ((mscoreMajorVersion < 3) || (mscoreMinorVersion < 3)) {
                   versionError.open();
                   Qt.quit();
-            } else if (curScore.selection.elements.length == 0) {
+            } else if (curScore.excerpts.length === 0 ){
+                  excerptsError.open();
+                  Qt.quit();
+            } else if (curScore.selection.elements.length === 0) {
                   selectionError.open();
                   Qt.quit();
-            } else if (curScore.selection.elements[0].type != Element.LAYOUT_BREAK ){
+            } else if (curScore.selection.elements[0].type !== Element.LAYOUT_BREAK ){
                   selectionError.open();
                   Qt.quit();
             } else {
-
+                  bool exportSectionBreaks = false; // For now section breaks cannot be part-independant. May change in future releases
                   cmd("select-similar");
                   
                   var elements = curScore.selection.elements;
@@ -56,14 +58,14 @@ MuseScore {
                   var partNum;
                   for (partNum = 0; partNum < partsList.length; partNum++) {
                         console.log(partsList [partNum].title)
-                        addBreaksToPart (partsList [partNum].partScore, measNoPageBreak, measNoLineBreak, measNoSectionBreak, measNoNoBreak, true, true, true, true) 
+                        addBreaksToPart (partsList [partNum].partScore, measNoPageBreak, measNoLineBreak, measNoSectionBreak, measNoNoBreak, true, true, exportSectionBreaks, true) 
                   }
                   
                   
-                  // delete measNoPageBreak;
-                  // delete measNoLineBreak;
-                  // delete measNoSectionBreak;
-                  // delete measNoNoBreak;
+                  delete measNoPageBreak;
+                  delete measNoLineBreak;
+                  delete measNoSectionBreak;
+                  delete measNoNoBreak;
                   Qt.quit();
             }
       }
@@ -97,7 +99,7 @@ MuseScore {
             return 1; // it was measure number 1
       }
             
-      function addBreaksToPart (part, pageArray, lineArray, sectionArray, noBreakArray, addPage, addLine, addSection, addNoBreak) {
+      function addBreaksToPart (part, pageArray, lineArray, sectionArray, noBreakArray, exportPageBreaks, exportLineBreaks, exportSectionBreaks, exportNoBreaks) {
             curScore.startCmd();
             
             var cursor = part.newCursor ();
@@ -106,33 +108,37 @@ MuseScore {
             
             var pbreak = newElement (Element.LAYOUT_BREAK);
             pbreak.layoutBreakType = LayoutBreak.PAGE;
+            pbreak.score = part
             
             var lbreak = newElement (Element.LAYOUT_BREAK);
             lbreak.layoutBreakType = LayoutBreak.LINE;
+            lbreak.score = part
             
             var sbreak = newElement (Element.LAYOUT_BREAK);
             sbreak.layoutBreakType = LayoutBreak.SECTION;
+            sbreak.score = part
             
             var nobreak = newElement (Element.LAYOUT_BREAK);
             nobreak.layoutBreakType = LayoutBreak.NOBREAK;
-            
+            nobreak.score = part
+
             var curMeasure = 1;
             do  {
-                  if (addPage && arrayContains (pageArray, curMeasure))
+                  if (exportPageBreaks && arrayContains (pageArray, curMeasure))
                         cursor.add (pbreak.clone ());
-                  else if (addLine && arrayContains(lineArray, curMeasure))
+                  else if (exportLineBreaks && arrayContains(lineArray, curMeasure))
                         cursor.add (lbreak.clone ());
-                  else if (addSection && arrayContains (sectionArray, curMeasure))
+                  else if (exportSectionBreaks && arrayContains (sectionArray, curMeasure))
                         cursor.add (sbreak.clone ());
-                  else if (addNoBreak&& arrayContains (noBreakArray, curMeasure))
+                  else if (exportNoBreaks && arrayContains (noBreakArray, curMeasure))
                         cursor.add (nobreak.clone ());
                   curMeasure++
             } while (cursor.nextMeasure ());
             
-            // delete pbreak;
-            // delete lbreak;
-            // delete sbreak;
-            // delete nobreak;
+            delete pbreak;
+            delete lbreak;
+            delete sbreak;
+            delete nobreak;
             
             curScore.endCmd();
       }
@@ -140,7 +146,7 @@ MuseScore {
       function arrayContains(array, value) {
             var i;
             for (i = 0; i < array.length; i++) {
-                  if (array [i] == value) {
+                  if (array [i] === value) {
                         return true
                   }
             }
@@ -153,6 +159,15 @@ MuseScore {
             visible: false
             title: qsTr("Unsupported MuseScore version")
             text: qsTr("This plugin needs MuseScore 3.3 or later.")
+            onAccepted: {
+                  Qt.quit()
+            }
+      }
+      MessageDialog {
+            id: excerptsError
+            visible: false
+            title: qsTr("Parts error")
+            text: qsTr("This score has no separate parts.\nNo breaks added.")
             onAccepted: {
                   Qt.quit()
             }
