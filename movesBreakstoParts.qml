@@ -10,7 +10,7 @@ MuseScore {
       onRun: {
             if (!curScore)
                   Qt.quit();
-            
+
             if ((mscoreMajorVersion < 3) || (mscoreMinorVersion < 3)) {
                   versionError.open();
                   Qt.quit();
@@ -24,16 +24,16 @@ MuseScore {
                   selectionError.open();
                   Qt.quit();
             } else {
-                  bool exportSectionBreaks = false; // For now section breaks cannot be part-independant. May change in future releases
+                  var exportSectionBreaks = false; // For now section breaks cannot be part-independant. May change in future releases
                   cmd("select-similar");
-                  
+
                   var elements = curScore.selection.elements;
-                  
+
                   var measNoPageBreak = new Array();
                   var measNoLineBreak = new Array();
                   var measNoSectionBreak = new Array();
                   var measNoNoBreak = new Array();
-                  
+
                   for (var idx = 0; idx < elements.length; idx++) {
                         var element = elements[idx];
                         if (element.type == Element.LAYOUT_BREAK ) {
@@ -48,7 +48,7 @@ MuseScore {
                               else console.log("Error in finding layout break type")
                         }
                   }
-                  
+
                   printList(measNoPageBreak, "measNoPageBreak: ");
                   printList(measNoLineBreak, "measNoLineBreak: ");
                   printList(measNoSectionBreak, "measNoSectionBreak: ");
@@ -58,10 +58,10 @@ MuseScore {
                   var partNum;
                   for (partNum = 0; partNum < partsList.length; partNum++) {
                         console.log(partsList [partNum].title)
-                        addBreaksToPart (partsList [partNum].partScore, measNoPageBreak, measNoLineBreak, measNoSectionBreak, measNoNoBreak, true, true, exportSectionBreaks, true) 
+                        addBreaksToPart (partsList [partNum].partScore, measNoPageBreak, measNoLineBreak, measNoSectionBreak, measNoNoBreak, true, true, exportSectionBreaks, true)
                   }
-                  
-                  
+
+
                   delete measNoPageBreak;
                   delete measNoLineBreak;
                   delete measNoSectionBreak;
@@ -69,19 +69,19 @@ MuseScore {
                   Qt.quit();
             }
       }
-      
+
       function printList(list, text) {
             var i = 0;
             for (i = 0; i < list.length; i++)
                   console.log(text, list[i])
       }
-      
+
       function findMeasureNumber (mea) {
             if (!mea) {
                   console.log("findMeasureNumber: no measure provided");
                   return 0;
             }
-            
+
             var ms = mea
             var i = 1;
             while (ms.prevMeasure) {
@@ -98,26 +98,26 @@ MuseScore {
             }
             return 1; // it was measure number 1
       }
-            
+
       function addBreaksToPart (part, pageArray, lineArray, sectionArray, noBreakArray, exportPageBreaks, exportLineBreaks, exportSectionBreaks, exportNoBreaks) {
             curScore.startCmd();
-            
+
             var cursor = part.newCursor ();
             cursor.rewind(Cursor.SCORE_START)
-            
-            
+
+
             var pbreak = newElement (Element.LAYOUT_BREAK);
             pbreak.layoutBreakType = LayoutBreak.PAGE;
             pbreak.score = part
-            
+
             var lbreak = newElement (Element.LAYOUT_BREAK);
             lbreak.layoutBreakType = LayoutBreak.LINE;
             lbreak.score = part
-            
+
             var sbreak = newElement (Element.LAYOUT_BREAK);
             sbreak.layoutBreakType = LayoutBreak.SECTION;
             sbreak.score = part
-            
+
             var nobreak = newElement (Element.LAYOUT_BREAK);
             nobreak.layoutBreakType = LayoutBreak.NOBREAK;
             nobreak.score = part
@@ -134,15 +134,15 @@ MuseScore {
                         cursor.add (nobreak.clone ());
                   curMeasure++
             } while (cursor.nextMeasure ());
-            
+
             delete pbreak;
             delete lbreak;
             delete sbreak;
             delete nobreak;
-            
+
             curScore.endCmd();
       }
-      
+
       function arrayContains(array, value) {
             var i;
             for (i = 0; i < array.length; i++) {
@@ -150,10 +150,10 @@ MuseScore {
                         return true
                   }
             }
-            
+
             return false
       }
-      
+
       MessageDialog {
             id: versionError
             visible: false
